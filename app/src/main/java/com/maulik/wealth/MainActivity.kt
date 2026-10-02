@@ -227,32 +227,333 @@ class MainActivity : Activity() {
     }
 
     private fun dashboard() {
-        container.addView(text("Good day, Maulik 👋", 15f, muted))
-        addSpace(container, 4)
-        container.addView(text("Your money overview", 24f, navy, true))
-        addSpace(container, 16)
+    // Dashboard heading
+    container.addView(text("Good day, Maulik 👋", 16f, muted))
+    addSpace(container, 4)
+    container.addView(text("Your money overview", 23f, navy, true))
+    addSpace(container, 16)
 
-        val netWorth = assetTotal() - total("Debt")
-        val hero = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(20, 22, 20, 22)
-            background = gradient()
+    // Total Net Worth card
+    val netWorth = assetTotal() - total("Debt")
+
+    val hero = LinearLayout(this).apply {
+        orientation = LinearLayout.VERTICAL
+        gravity = Gravity.CENTER_VERTICAL
+        setPadding(24, 26, 24, 26)
+        minimumHeight = 175
+        background = gradient()
+        elevation = 4f
+    }
+
+    val heroTop = LinearLayout(this).apply {
+        orientation = LinearLayout.HORIZONTAL
+        gravity = Gravity.CENTER_VERTICAL
+    }
+
+    heroTop.addView(
+        text("TOTAL NET WORTH", 15f, Color.LTGRAY, true),
+        LinearLayout.LayoutParams(0, -2, 1f)
+    )
+
+    val eye = TextView(this).apply {
+        text = if (hideBalance) "Show" else "Hide"
+        textSize = 14f
+        setTextColor(Color.WHITE)
+        setPadding(12, 6, 12, 6)
+        setOnClickListener {
+            hideBalance = !hideBalance
+            showScreen()
         }
+    }
 
-        val top = LinearLayout(this).apply {
+    heroTop.addView(eye)
+    hero.addView(heroTop)
+    addSpace(hero, 16)
+
+    hero.addView(
+        text(
+            if (hideBalance) "₹ ••••••••" else money(netWorth),
+            34f,
+            Color.WHITE,
+            true
+        )
+    )
+
+    addSpace(hero, 12)
+    hero.addView(text("Assets minus debts", 15f, Color.LTGRAY))
+    container.addView(hero)
+    addSpace(container, 18)
+
+    // Assets and debts
+    container.addView(text("Your finances", 20f, navy, true))
+    addSpace(container, 10)
+
+    val summaryRow = LinearLayout(this).apply {
+        orientation = LinearLayout.HORIZONTAL
+    }
+
+    summaryRow.addView(
+        summaryCard(
+            "Total Assets",
+            assetTotal(),
+            Color.rgb(220, 252, 231),
+            Color.rgb(22, 101, 52)
+        ),
+        LinearLayout.LayoutParams(0, -2, 1f)
+    )
+
+    summaryRow.addView(View(this), LinearLayout.LayoutParams(10, 1))
+
+    summaryRow.addView(
+        summaryCard(
+            "Total Debts",
+            total("Debt"),
+            Color.rgb(254, 226, 226),
+            Color.rgb(185, 28, 28)
+        ),
+        LinearLayout.LayoutParams(0, -2, 1f)
+    )
+
+    container.addView(summaryRow)
+    addSpace(container, 20)
+
+    // Quick Actions
+    container.addView(text("Quick Actions", 20f, navy, true))
+    addSpace(container, 10)
+
+    val actionRow1 = LinearLayout(this).apply {
+        orientation = LinearLayout.HORIZONTAL
+    }
+
+    actionRow1.addView(
+        button("＋  Add Asset", Color.rgb(37, 99, 235)) {
+            showRecordDialog("Asset")
+        },
+        LinearLayout.LayoutParams(0, -2, 1f)
+    )
+
+    actionRow1.addView(View(this), LinearLayout.LayoutParams(10, 1))
+
+    actionRow1.addView(
+        button("−  Add Debt", Color.rgb(190, 24, 93)) {
+            showRecordDialog("Debt")
+        },
+        LinearLayout.LayoutParams(0, -2, 1f)
+    )
+
+    container.addView(actionRow1)
+    addSpace(container, 10)
+
+    val actionRow2 = LinearLayout(this).apply {
+        orientation = LinearLayout.HORIZONTAL
+    }
+
+    actionRow2.addView(
+        button("↗  Add Income", green) {
+            showRecordDialog("Income")
+        },
+        LinearLayout.LayoutParams(0, -2, 1f)
+    )
+
+    actionRow2.addView(View(this), LinearLayout.LayoutParams(10, 1))
+
+    actionRow2.addView(
+        button("↘  Add Expense", Color.rgb(234, 88, 12)) {
+            showRecordDialog("Expense")
+        },
+        LinearLayout.LayoutParams(0, -2, 1f)
+    )
+
+    container.addView(actionRow2)
+    addSpace(container, 20)
+
+    // Monthly Overview
+    container.addView(text("Monthly Overview", 20f, navy, true))
+    addSpace(container, 10)
+
+    val monthly = records.filter { it.date >= monthStart() }
+    val income = monthly.filter { it.type == "Income" }.sumOf { it.amount }
+    val expenses = monthly.filter { it.type == "Expense" }.sumOf { it.amount }
+    val balance = income - expenses
+
+    val monthCard = card().apply {
+        setPadding(18, 18, 18, 18)
+    }
+
+    fun addMonthlyRow(label: String, value: Double, color: Int) {
+        val row = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
         }
-        top.addView(text("TOTAL NET WORTH", 13f, Color.LTGRAY, true),
-            LinearLayout.LayoutParams(0, -2, 1f))
-        val eye = TextView(this).apply {
-            text = if (hideBalance) "Show" else "Hide"
-            textSize = 13f
-            setTextColor(Color.WHITE)
-            setOnClickListener {
-                hideBalance = !hideBalance
-                showScreen()
+
+        row.addView(
+            text(label, 15f, muted),
+            LinearLayout.LayoutParams(0, -2, 1f)
+        )
+
+        row.addView(
+            text(
+                if (hideBalance) "••••••" else money(value),
+                18f,
+                color,
+                true
+            )
+        )
+
+        monthCard.addView(row)
+    }
+
+    addMonthlyRow("Income", income, green)
+    addSpace(monthCard, 16)
+    addMonthlyRow("Expenses", expenses, red)
+
+    val separator = View(this).apply {
+        setBackgroundColor(Color.rgb(229, 231, 235))
+    }
+    val separatorParams = LinearLayout.LayoutParams(-1, 1)
+    separatorParams.topMargin = 14
+    separatorParams.bottomMargin = 14
+    monthCard.addView(separator, separatorParams)
+
+    addMonthlyRow("Monthly Balance", balance, navy)
+
+    container.addView(monthCard)
+    addSpace(container, 20)
+
+    // Investment Summary
+    val stockValue = total("Stock")
+    val otherInvestment = total("Investment")
+    val investmentValue = stockValue + otherInvestment
+
+    container.addView(text("Investment Summary", 20f, navy, true))
+    addSpace(container, 10)
+
+    val investmentCard = card().apply {
+        setPadding(18, 18, 18, 18)
+        setOnClickListener {
+            selectedTab = "Invest"
+            showScreen()
+        }
+    }
+
+    investmentCard.addView(
+        text("Total tracked investment value", 14f, muted)
+    )
+    addSpace(investmentCard, 8)
+
+    investmentCard.addView(
+        text(
+            if (hideBalance) "••••••" else money(investmentValue),
+            25f,
+            purple,
+            true
+        )
+    )
+
+    addSpace(investmentCard, 12)
+    investmentCard.addView(
+        text("Stocks: ${if (hideBalance) "••••••" else money(stockValue)}", 14f, darkText)
+    )
+    addSpace(investmentCard, 6)
+    investmentCard.addView(
+        text("Other investments: ${if (hideBalance) "••••••" else money(otherInvestment)}", 14f, darkText)
+    )
+
+    container.addView(investmentCard)
+    addSpace(container, 20)
+
+    // Recent Records
+    val recent = records.sortedByDescending { it.date }.take(3)
+
+    val recentHeading = LinearLayout(this).apply {
+        orientation = LinearLayout.HORIZONTAL
+        gravity = Gravity.CENTER_VERTICAL
+    }
+
+    recentHeading.addView(
+        text("Recent Records", 20f, navy, true),
+        LinearLayout.LayoutParams(0, -2, 1f)
+    )
+
+    val seeAll = TextView(this).apply {
+        text = "See all  →"
+        textSize = 14f
+        setTextColor(purple)
+        setOnClickListener {
+            selectedTab = "Records"
+            showScreen()
+        }
+    }
+
+    recentHeading.addView(seeAll)
+    container.addView(recentHeading)
+    addSpace(container, 10)
+
+    val recentCard = card().apply {
+        setPadding(16, 8, 16, 8)
+    }
+
+    if (recent.isEmpty()) {
+        recentCard.addView(text("No records yet.", 14f, muted))
+    } else {
+        recent.forEachIndexed { index, record ->
+            val row = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                setPadding(0, 12, 0, 12)
+            }
+
+            val left = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+            }
+
+            left.addView(text(record.name, 15f, navy, true))
+            addSpace(left, 4)
+
+            val date = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
+                .format(Date(record.date))
+
+            left.addView(
+                text("${record.type} • $date", 12f, muted)
+            )
+
+            row.addView(left, LinearLayout.LayoutParams(0, -2, 1f))
+
+            val amountColor =
+                if (record.type == "Debt" || record.type == "Expense") red
+                else green
+
+            row.addView(
+                text(
+                    if (hideBalance) "••••••" else money(record.amount),
+                    15f,
+                    amountColor,
+                    true
+                )
+            )
+
+            recentCard.addView(row)
+
+            if (index < recent.lastIndex) {
+                val line = View(this).apply {
+                    setBackgroundColor(Color.rgb(229, 231, 235))
+                }
+                recentCard.addView(
+                    line,
+                    LinearLayout.LayoutParams(-1, 1)
+                )
             }
         }
+    }
+
+    container.addView(recentCard)
+    addSpace(container, 16)
+
+    container.addView(button("View All Records  →", navy) {
+        selectedTab = "Records"
+        showScreen()
+    })
+}
         top.addView(eye)
         hero.addView(top)
         addSpace(hero, 8)
