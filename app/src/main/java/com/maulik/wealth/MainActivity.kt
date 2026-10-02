@@ -34,7 +34,7 @@ class MainActivity : Activity() {
     private lateinit var history: LinearLayout
 
     private val blue = Color.rgb(24, 45, 76)
-    private val background = Color.rgb(247, 249, 252)
+    private val pageBackground = Color.rgb(247, 249, 252)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -120,7 +120,7 @@ class MainActivity : Activity() {
         root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(20, 24, 20, 20)
-            setBackgroundColor(background)
+            setBackgroundColor(pageBackground)
         }
 
         root.addView(TextView(this).apply {
