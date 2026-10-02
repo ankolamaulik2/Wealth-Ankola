@@ -25,3 +25,4 @@ jobs:
         with:
           name: Wealth-Ankola-APK
           path: app/build/outputs/apk/debug/app-debug.apk
+# Wealth Ankola build workflow
